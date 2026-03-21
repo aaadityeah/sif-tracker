@@ -2,6 +2,9 @@
 
 A web-based tool to track the daily Net Asset Value (NAV) and performance returns of Strategic Investment Funds (SIFs). It compares performance across various timeframes (1 Day, 1 Week, 1 Month, 3 Months, 6 Months) and visualizes the performance trajectory.
 
+<img width="1231" height="898" alt="image" src="https://github.com/user-attachments/assets/6861ae76-6969-43fe-b2b1-f5d3d3389594" />
+
+
 ## Features
 
 - **Daily Data Updates:** Fetches the latest scheme NAV data.
