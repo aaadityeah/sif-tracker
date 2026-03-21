@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIF Performance Tracker - Daily NAV & Returns</title>
+    <meta name="description"
+        content="Track daily performance of Strategic Investment Funds (SIFs). Compare NAV returns for 1 day, 1 week, 1 month, 3 months, and 6 months. Updated daily.">
+    <meta name="keywords"
+        content="SIF, Strategic Investment Funds, NAV, Mutual Fund Performance, Returns, Tracker, Finance, Investment">
+    <meta name="author" content="SIF Performance Tracker">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://sifperf.com/">
+    <meta property="og:title" content="SIF Performance Tracker - Daily NAV & Returns">
+    <meta property="og:description"
+        content="Compare SIF performance across various timeframes. Real-time NAV tracking and historical returns analysis.">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:title" content="SIF Performance Tracker - Daily NAV & Returns">
+    <meta property="twitter:description"
+        content="Compare SIF performance across various timeframes. Real-time NAV tracking and historical returns analysis.">
+
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- JSON-LD Structured Data for AEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Dataset",
+      "name": "SIF Performance Data",
+      "description": "Daily Net Asset Value (NAV) and performance returns (1D, 1W, 1M, 6M) for Strategic Investment Funds.",
+      "license": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "creator": {
+        "@type": "Organization",
+        "name": "SIF Tracker"
+      },
+      "variableMeasured": [
+        "Net Asset Value (NAV)",
+        "1 Day Return",
+        "1 Week Return",
+        "1 Month Return",
+        "3 Month Return",
+        "6 Month Return"
+      ]
+    }
+    </script>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1>SIF Performance Tracker</h1>
+                    <p id="last-updated">Loading...</p>
+                </div>
+                <div class="controls">
+                    <button id="refresh-btn" onclick="refreshData()">Refresh Data</button>
+                    <span id="last-refresh-time"></span>
+                </div>
+            </div>
+        </header>
+
+        <div class="chart-wrapper">
+            <div class="chart-header">
+                <h2>Performance Trajectory</h2>
+                <div class="duration-controls" id="duration-controls">
+                    <button data-duration="1m" class="active">1M</button>
+                    <button data-duration="3m">3M</button>
+                    <button data-duration="6m">6M</button>
+                    <button data-duration="all">All Time</button>
+                </div>
+            </div>
+            <div id="chart-canvas-container">
+                <canvas id="perfChart"></canvas>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="perf-table">
+                <thead>
+                    <tr>
+                        <th data-sort="name">Scheme Name</th>
+                        <th data-sort="current">NAV</th>
+                        <th data-sort="1d">1D %</th>
+                        <th data-sort="1w">1W %</th>
+                        <th data-sort="1m">1M %</th>
+                        <th data-sort="3m">3M %</th>
+                        <th data-sort="6m">6M %</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <tr>
+                        <td colspan="7" class="loading">Fetching data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const JSON_URL = 'sif_schemes.json';
+        const CSV_URL = 'sif_data.csv';
+
+        // State
+        let allRows = [];
+        let sortCol = '1m'; // Default sort
+        let sortAsc = false; // Default desc
+        let globalDateMap = {};
+        let globalSortedDates = [];
+        let globalSchemes = [];
+        let myChart = null;
+        let pChartDuration = '1m';
+
+        async function init() {
+            await loadData();
+            setupSorting();
+        }
+
+        async function loadData() {
+            try {
+                // Add cache busting
+                const ts = new Date().getTime();
+                const [schemesResp, csvResp] = await Promise.all([
+                    fetch(`${JSON_URL}?t=${ts}`),
+                    fetch(`${CSV_URL}?t=${ts}`)
+                ]);
+
+                if (!schemesResp.ok || !csvResp.ok) throw new Error("Failed to load data");
+
+                const schemes = await schemesResp.json();
+                const csvText = await csvResp.text();
+
+                processData(schemes, csvText);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('table-body').innerHTML = `<tr><td colspan="7" class="error">Error loading data. Please run the update script.</td></tr>`;
+            }
+        }
+
+        async function refreshData() {
+            const btn = document.getElementById('refresh-btn');
+            const status = document.getElementById('last-refresh-time');
+
+            btn.disabled = true;
+            btn.textContent = "Updating...";
+            status.textContent = "";
+
+            try {
+                const resp = await fetch('/update', { method: 'POST' });
+                if (!resp.ok) throw new Error(await resp.text());
+
+                await loadData();
+
+                const now = new Date().toLocaleTimeString();
+                status.textContent = `Last Refreshed: ${now}`;
+            } catch (err) {
+                alert("Update failed: " + err.message);
+                status.textContent = "Update failed";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Refresh Data";
+            }
+        }
+
+        function setupSorting() {
+            document.querySelectorAll('th[data-sort]').forEach(th => {
+                th.addEventListener('click', () => {
+                    const col = th.dataset.sort;
+                    if (sortCol === col) {
+                        sortAsc = !sortAsc; // Toggle
+                    } else {
+                        sortCol = col;
+                        sortAsc = false; // Default to desc for new col
+                        // Exception: Name might default to asc
+                        if (col === 'name') sortAsc = true;
+                    }
+                    renderTable();
+                });
+            });
+        }
+
+        function processData(schemes, csvText) {
+            // Parse CSV
+            const parsed = Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true
+            });
+
+            const data = parsed.data; // Array of {sid_id, date, nav, is_previous_day_nav}
+
+            // Organize Data: Date -> ID -> Record
+            const dateMap = {};
+            const allDatesSet = new Set();
+
+            data.forEach(row => {
+                const d = row.date;
+                if (!dateMap[d]) dateMap[d] = {};
+                dateMap[d][row.sid_id] = {
+                    nav: row.nav,
+                    isPrev: row.is_previous_day_nav === 'Y'
+                };
+                allDatesSet.add(d);
+            });
+
+            const sortedDates = Array.from(allDatesSet).sort();
+            const latestDate = sortedDates[sortedDates.length - 1];
+
+            document.getElementById('last-updated').textContent = `Data as of: ${latestDate}`;
+
+            const getTargetDate = (baseDateStr, config) => {
+                const d = new Date(baseDateStr);
+                if (config.days) d.setDate(d.getDate() - config.days);
+                if (config.months) d.setMonth(d.getMonth() - config.months);
+                return d.toISOString().split('T')[0];
+            };
+
+            allRows = schemes.map(scheme => {
+                const id = scheme.id;
+                const currentRec = dateMap[latestDate] ? dateMap[latestDate][id] : null;
+
+                if (!currentRec) return null;
+
+                const currentNAV = currentRec.nav;
+
+                const getChange = (periodConfig) => {
+                    const targetDateStr = getTargetDate(latestDate, periodConfig);
+                    let foundRec = null;
+                    let searchDate = targetDateStr;
+                    let idx = sortedDates.indexOf(searchDate);
+
+                    if (idx === -1) {
+                        for (let i = sortedDates.length - 1; i >= 0; i--) {
+                            if (sortedDates[i] <= searchDate) {
+                                idx = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (idx !== -1) {
+                        const actualDate = sortedDates[idx];
+                        if (dateMap[actualDate] && dateMap[actualDate][id]) {
+                            foundRec = dateMap[actualDate][id];
+                        }
+                    }
+
+                    if (!foundRec) return null;
+                    return ((currentNAV - foundRec.nav) / foundRec.nav) * 100;
+                };
+
+                const oneMonthRet = getChange({ months: 1 });
+
+                // Emoji Logic (Option 3: Sentiment)
+                let emoji = '😴'; // Default: Boring (0%)
+                if (oneMonthRet !== null) {
+                    if (oneMonthRet > 5) emoji = '🤩'; // Love it
+                    else if (oneMonthRet > 0) emoji = '🤑'; // Good
+                    else if (oneMonthRet < -5) emoji = '⚰️'; // Dead
+                    else if (oneMonthRet < 0) emoji = '🤕'; // Ouch
+                }
+
+                return {
+                    name: `${emoji} ${scheme.name}`,
+                    cleanName: scheme.name,
+                    id: id,
+                    current: currentNAV,
+                    isPrev: currentRec.isPrev,
+                    "1d": getChange({ days: 1 }),
+                    "1w": getChange({ days: 7 }),
+                    "1m": oneMonthRet,
+                    "3m": getChange({ months: 3 }),
+                    "6m": getChange({ months: 6 })
+                };
+            }).filter(r => r !== null);
+
+            globalDateMap = dateMap;
+            globalSortedDates = sortedDates;
+            globalSchemes = schemes;
+            initChart();
+
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+
+            // Update Header Classes
+            document.querySelectorAll('th').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.dataset.sort === sortCol) {
+                    th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+                }
+            });
+
+            // Sort
+            allRows.sort((a, b) => {
+                let col = sortCol;
+                if (col === 'name') col = 'cleanName'; // Sort by clean name
+
+                let valA = a[col];
+                let valB = b[col];
+
+                // Handle nulls (always at bottom)
+                if (valA === null || valA === undefined) return 1;
+                if (valB === null || valB === undefined) return -1;
+
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+
+                if (valA < valB) return sortAsc ? -1 : 1;
+                if (valA > valB) return sortAsc ? 1 : -1;
+                return 0;
+            });
+
+            allRows.forEach(row => {
+                const tr = document.createElement('tr');
+
+                const formatVal = (v) => {
+                    if (v === null || v === undefined) return '-';
+                    const colorClass = v > 0 ? 'pos' : (v < 0 ? 'neg' : 'neu');
+                    return `<span class="${colorClass}">${v.toFixed(2)}%</span>`;
+                };
+
+                const navDisplay = row.isPrev ? `${row.current.toFixed(4)} <span title="Previous Day NAV">*</span>` : row.current.toFixed(4);
+
+                tr.innerHTML = `
+                    <td class="name-cell" title="${row.name}">${row.name}</td>
+                    <td class="nav-cell">${navDisplay}</td>
+                    <td>${formatVal(row["1d"])}</td>
+                    <td>${formatVal(row["1w"])}</td>
+                    <td>${formatVal(row["1m"])}</td>
+                    <td>${formatVal(row["3m"])}</td>
+                    <td>${formatVal(row["6m"])}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function initChart() {
+            document.querySelectorAll('#duration-controls button').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('#duration-controls button').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    pChartDuration = e.target.dataset.duration;
+                    updateChart();
+                });
+            });
+            updateChart();
+        }
+
+        function updateChart() {
+            if (!globalSortedDates.length) return;
+
+            const latestDate = globalSortedDates[globalSortedDates.length - 1];
+
+            let startDateStr = globalSortedDates[0];
+            const d = new Date(latestDate);
+            if (pChartDuration === '1m') d.setMonth(d.getMonth() - 1);
+            else if (pChartDuration === '3m') d.setMonth(d.getMonth() - 3);
+            else if (pChartDuration === '6m') d.setMonth(d.getMonth() - 6);
+
+            if (pChartDuration !== 'all') {
+                const targetStr = d.toISOString().split('T')[0];
+                let idx = globalSortedDates.indexOf(targetStr);
+                if (idx === -1) {
+                    for (let i = 0; i < globalSortedDates.length; i++) {
+                        if (globalSortedDates[i] >= targetStr) {
+                            idx = i;
+                            break;
+                        }
+                    }
+                }
+                if (idx !== -1) startDateStr = globalSortedDates[idx];
+            }
+
+            const startIndex = globalSortedDates.indexOf(startDateStr);
+            const chartDates = globalSortedDates.slice(startIndex);
+
+            const datasets = [];
+            const getColor = (i) => {
+                const palette = [
+                    '#58a6ff', '#3fb950', '#f85149', '#a371f7', '#d29922',
+                    '#2ea043', '#f78166', '#e34c26', '#1f6feb', '#8957e5',
+                    '#d73a4a', '#b392f0', '#9e6a03', '#116329', '#0366d6',
+                    '#ffd33d', '#6f42c1', '#28a745', '#ea4a5a', '#005cc5'
+                ];
+                if (i < palette.length) return palette[i];
+                return `hsl(${(i * 137.5) % 360}, 70%, 50%)`;
+            };
+
+            globalSchemes.forEach((scheme, i) => {
+                const id = scheme.id;
+                const dataPoints = [];
+                let startNav = null;
+
+                chartDates.forEach(date => {
+                    if (globalDateMap[date] && globalDateMap[date][id]) {
+                        const nav = globalDateMap[date][id].nav;
+                        if (startNav === null) startNav = nav;
+
+                        // Relative return %
+                        const relReturn = ((nav - startNav) / startNav) * 100;
+                        dataPoints.push(relReturn);
+                    } else {
+                        dataPoints.push(dataPoints.length > 0 ? dataPoints[dataPoints.length - 1] : null);
+                    }
+                });
+
+                let isHidden = false;
+                if (myChart && myChart.data.datasets[i]) {
+                    const meta = myChart.getDatasetMeta(i);
+                    if (meta.hidden !== null) {
+                        isHidden = meta.hidden;
+                    } else {
+                        isHidden = myChart.data.datasets[i].hidden;
+                    }
+                }
+
+                datasets.push({
+                    label: scheme.name,
+                    data: dataPoints,
+                    borderColor: getColor(i),
+                    backgroundColor: getColor(i),
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: 0.1,
+                    hidden: isHidden
+                });
+            });
+
+            const ctx = document.getElementById('perfChart').getContext('2d');
+
+            if (myChart) {
+                myChart.data.labels = chartDates;
+                myChart.data.datasets = datasets;
+                myChart.update();
+            } else {
+                myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartDates,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                right: 20
+                            }
+                        },
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.y !== null) {
+                                            label += context.parsed.y.toFixed(2) + '%';
+                                        }
+                                        return label;
+                                    }
+                                }
+                            },
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    color: document.body.style.color || '#8b949e',
+                                    usePointStyle: true,
+                                    boxWidth: 8,
+                                    padding: 15,
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Relative Return (%)',
+                                    color: '#8b949e'
+                                },
+                                ticks: {
+                                    color: '#8b949e',
+                                    callback: function (value) {
+                                        return value + '%';
+                                    }
+                                },
+                                grid: {
+                                    color: '#30363d'
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    color: '#8b949e',
+                                    maxTicksLimit: 10
+                                },
+                                grid: {
+                                    color: '#30363d'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,67 @@
+[
+  {
+    "id": "SIF-1",
+    "name": "qsif Equity LSF - Growth - Direct",
+    "start_date": "2025-10-08"
+  },
+  {
+    "id": "SIF-14",
+    "name": "Magnum Hybrid LSF - Direct - Growth",
+    "start_date": "2025-10-29"
+  },
+  {
+    "id": "SIF-19",
+    "name": "Diviniti Equity LSF - Direct Growth",
+    "start_date": "2025-12-03"
+  },
+  {
+    "id": "SIF-23",
+    "name": "qsif Equity Ex-Top 100 LSF - Growth - Direct",
+    "start_date": "2025-11-13"
+  },
+  {
+    "id": "SIF-32",
+    "name": "Titanium Hybrid LSF Direct Growth",
+    "start_date": "2025-12-17"
+  },
+  {
+    "id": "SIF-33",
+    "name": "iSIF Equity Ex-Top 100 LSF - Direct - Growth",
+    "start_date": "2026-02-05"
+  },
+  {
+    "id": "SIF-34",
+    "name": "iSIF Equity Ex-Top 100 LSF - Growth",
+    "start_date": "2026-02-05"
+  },
+  {
+    "id": "SIF-35",
+    "name": "iSIF Hybrid LSF - Growth",
+    "start_date": "2026-02-05"
+  },
+  {
+    "id": "SIF-36",
+    "name": "iSIF Hybrid LSF - Direct - Growth",
+    "start_date": "2026-02-05"
+  },
+  {
+    "id": "SIF-5",
+    "name": "qsif Hybrid LSF - Growth - Direct",
+    "start_date": "2025-10-20"
+  },
+  {
+    "id": "SIF-54",
+    "name": "Arudha Hybrid LSF-Direct-Growth",
+    "start_date": "2026-02-04"
+  },
+  {
+    "id": "SIF-57",
+    "name": "DynaSIF Equity Long - Short Fund - Direct - Growth",
+    "start_date": "2026-02-27"
+  },
+  {
+    "id": "SIF-9",
+    "name": "Altiva Hybrid LSF - Direct - Growth",
+    "start_date": "2025-10-24"
+  }
+]
