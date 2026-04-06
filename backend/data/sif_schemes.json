@@ -60,6 +60,21 @@
     "start_date": "2026-02-27"
   },
   {
+    "id": "SIF-61",
+    "name": "Arudha Equity LSF-Direct-Growth",
+    "start_date": "2026-03-30"
+  },
+  {
+    "id": "SIF-79",
+    "name": "Apex Hybrid LSF-Direct Growth",
+    "start_date": "2026-03-30"
+  },
+  {
+    "id": "SIF-88",
+    "name": "DynaSIF Active Asset Allocator Long- Short Fund - Direct - Growth",
+    "start_date": "2026-03-30"
+  },
+  {
     "id": "SIF-9",
     "name": "Altiva Hybrid LSF - Direct - Growth",
     "start_date": "2025-10-24"
