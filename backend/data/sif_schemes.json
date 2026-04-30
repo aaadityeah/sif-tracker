@@ -78,5 +78,20 @@
     "id": "SIF-9",
     "name": "Altiva Hybrid LSF - Direct - Growth",
     "start_date": "2025-10-24"
+  },
+  {
+    "id": "SIF-90",
+    "name": "qsif Active Asset Allocator LSF - Growth - Direct",
+    "start_date": "2026-04-24"
+  },
+  {
+    "id": "SIF-95",
+    "name": "Sapphire Equity Long-Short SIF - Direct - Growth",
+    "start_date": "2026-04-29"
+  },
+  {
+    "id": "SIF-96",
+    "name": "Sapphire Equity Long-Short SIF - Growth",
+    "start_date": "2026-04-29"
   }
 ]
