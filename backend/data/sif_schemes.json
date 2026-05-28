@@ -5,6 +5,21 @@
     "start_date": "2025-10-08"
   },
   {
+    "id": "SIF-107",
+    "name": "WSIF Equity Ex-Top 100 LSF - Direct Growth",
+    "start_date": "2026-05-11"
+  },
+  {
+    "id": "SIF-108",
+    "name": "WSIF Equity LSF - Direct Growth",
+    "start_date": "2026-05-11"
+  },
+  {
+    "id": "SIF-116",
+    "name": "qsif Sector Rotation LSF - Growth - Direct",
+    "start_date": "2026-05-18"
+  },
+  {
     "id": "SIF-14",
     "name": "Magnum Hybrid LSF - Direct - Growth",
     "start_date": "2025-10-29"
@@ -93,5 +108,10 @@
     "id": "SIF-96",
     "name": "Sapphire Equity Long-Short SIF - Growth",
     "start_date": "2026-04-29"
+  },
+  {
+    "id": "SIF-99",
+    "name": "Titanium Equity LSF Direct Growth",
+    "start_date": "2026-05-20"
   }
 ]
